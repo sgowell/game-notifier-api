@@ -2,7 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 import { DiscordService } from './discord.service';
 
-@Controller()
+@Controller('discord')
 export class DiscordController {
   constructor(
     private readonly discordService: DiscordService,
