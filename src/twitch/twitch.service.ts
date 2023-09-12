@@ -4,8 +4,7 @@ import { AppTokenAuthProvider } from '@twurple/auth';
 import 'dotenv/config';
 import translate from 'translate';
 
-import pkg from 'twilio';
-const { Twilio } = pkg;
+import { Twilio } from 'twilio';
 
 const clientId = process.env.TWITCH_CLIENT_ID;
 const clientSecret = process.env.TWITCH_CLIENT_SECRET;
@@ -55,9 +54,9 @@ export class TwitchService {
                   const followerModeEnabled = settings.followerOnlyModeEnabled;
                   if (followerModeEnabled) {
                     const delay = settings.followerOnlyModeDelay ?? 'none';
-                    const followerDelay = `Followers Only - Delay: ${delay} minutes\n`;
-                    body += followerDelay;
-                    console.log(followerDelay);
+                    const followerDelayMessage = `Followers Only - Delay: ${delay} minutes\n`;
+                    body += followerDelayMessage;
+                    console.log(followerDelayMessage);
                   }
 
                   this.sendMessage(body);
