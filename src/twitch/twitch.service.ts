@@ -14,7 +14,6 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = new Twilio(accountSid, authToken);
 
 const authProvider = new AppTokenAuthProvider(clientId, clientSecret);
-const barWithEndline = '---\n';
 
 const apiClient = new ApiClient({ authProvider });
 
@@ -29,45 +28,55 @@ export class TwitchService {
             if (gameStreams.data.length < 1) {
               const noStreams = `No ${item.name} Streams found\nCheck Back Later\nCheers.`;
               console.log(noStreams);
-              this.sendMessage(noStreams);
             } else {
               gameStreams.data.forEach(async (stream) => {
-                let body = '';
                 const user = await stream.getUser();
 
-                apiClient.chat.getSettings(user.id).then((settings) => {
-                  const twitchUrl = `Twitch URL: twitch://open?stream=${user.name}\n`;
-                  body += twitchUrl;
-                  console.log(twitchUrl);
+                let body = '';
 
-                  if (stream.language !== 'en') {
-                    const language = `language: ${stream.language}\n`;
-                    body += language;
+                apiClient.chat.getSettings(user.id).then(async (settings) => {
+                  body += `${user.name}\n`;
+                  body += await this.buildLocalizedBody(stream.language);
+                  body += this.buildFollowerModeBody(
+                    settings.followerOnlyModeEnabled,
+                    settings.followerOnlyModeDelay,
+                  );
 
-                    body += barWithEndline;
-                    body += this.buildTranslatedMessage(stream.language);
-                    body += barWithEndline;
-
-                    console.log(language);
-                  }
-
-                  const followerModeEnabled = settings.followerOnlyModeEnabled;
-                  if (followerModeEnabled) {
-                    const delay = settings.followerOnlyModeDelay ?? 'none';
-                    const followerDelayMessage = `Followers Only - Delay: ${delay} minutes\n`;
-                    body += followerDelayMessage;
-                    console.log(followerDelayMessage);
-                  }
-
+                  body += `\n${new Date(Date.now())}\n`;
                   this.sendMessage(body);
-                  console.log(body);
-                  console.log(barWithEndline);
                 });
               });
             }
           });
         });
       });
+  }
+
+  async buildLocalizedBody(languageCode: string = 'en'): Promise<string> {
+    let localizedBody = '';
+    if (languageCode !== 'en') {
+      const language = `language: ${languageCode}\n`;
+
+      const translatedMessage = await this.buildTranslatedMessage(languageCode);
+
+      localizedBody += language;
+      localizedBody += `${translatedMessage}\n`;
+    }
+    return localizedBody;
+  }
+
+  buildFollowerModeBody(
+    enabled: boolean = false,
+    followDelay: number = null,
+  ): string {
+    let followerModeBody = '';
+    if (enabled) {
+      const delay = followDelay ?? 'none';
+      const followerDelayString = `Followers Only - Delay: ${delay} minutes\n`;
+      followerModeBody += followerDelayString;
+    }
+
+    return followerModeBody;
   }
 
   sendMessage(body) {
