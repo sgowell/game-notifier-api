@@ -1,3 +1,4 @@
+import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
@@ -10,7 +11,12 @@ import { TwitchModule } from './twitch/twitch.module';
 import { TwitchService } from './twitch/twitch.service';
 
 @Module({
-  imports: [LoggerModule.forRoot(), DiscordModule, TwitchModule],
+  imports: [
+    LoggerModule.forRoot(),
+    DiscordModule,
+    TwitchModule,
+    CacheModule.register(),
+  ],
   controllers: [AppController, DiscordController, TwitchController],
   providers: [AppService, DiscordService, TwitchService],
 })

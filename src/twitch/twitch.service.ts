@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable } from '@nestjs/common';
 import { ApiClient } from '@twurple/api';
 import { AppTokenAuthProvider } from '@twurple/auth';
+import { Cache } from 'cache-manager';
 import 'dotenv/config';
 import translate from 'translate';
 
@@ -16,24 +18,26 @@ const client = new Twilio(accountSid, authToken);
 const authProvider = new AppTokenAuthProvider(clientId, clientSecret);
 
 const apiClient = new ApiClient({ authProvider });
+const defaultIGDBIds = [process.env.DEFAULT_IGDB_ID];
+const cacheTimeout = 60 * 1000 * 10; //10 minutes in milliseconds // Should this be in environment vars?
 
 @Injectable()
 export class TwitchService {
-  async processStreamsForMessaging() {
-    await apiClient.games
-      .getGamesByIgdbIds([process.env.IGDB_ID])
-      .then(async (games) => {
-        games.forEach(async (item) => {
-          await item.getStreams().then(async (gameStreams) => {
-            if (gameStreams.data.length < 1) {
-              const noStreams = `No ${item.name} Streams found\nCheck Back Later\nCheers.`;
-              console.log(noStreams);
-            } else {
-              gameStreams.data.forEach(async (stream) => {
-                const user = await stream.getUser();
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
-                let body = '';
+  async processStreamsForMessaging(igdbIds: string[] = defaultIGDBIds) {
+    await apiClient.games.getGamesByIgdbIds(igdbIds).then(async (games) => {
+      games.forEach(async (item) => {
+        await item.getStreams().then(async (gameStreams) => {
+          if (gameStreams.data.length < 1) {
+            const noStreams = `No ${item.name} Streams found\nCheck Back Later\nCheers.`;
+            console.log(noStreams);
+          } else {
+            gameStreams.data.forEach(async (stream) => {
+              const user = await stream.getUser();
 
+              let body = '';
+              if (!this.cacheManager.get(user.id)) {
                 apiClient.chat.getSettings(user.id).then(async (settings) => {
                   body += `${user.name}\n`;
                   body += await this.buildLocalizedBody(stream.language);
@@ -44,12 +48,14 @@ export class TwitchService {
 
                   body += `\n${new Date(Date.now())}\n`;
                   this.sendMessage(body);
+                  await this.cacheManager.set(user.id, user.name, cacheTimeout);
                 });
-              });
-            }
-          });
+              }
+            });
+          }
         });
       });
+    });
   }
 
   async buildLocalizedBody(languageCode: string = 'en'): Promise<string> {
