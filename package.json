@@ -33,6 +33,7 @@
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "translate": "^2.0.2",
+    "ts-igdb-client": "^0.4.2",
     "twilio": "^4.17.0"
   },
   "devDependencies": {
