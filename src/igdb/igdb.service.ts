@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 import {
   WhereInFlags,
   fields,
@@ -7,27 +9,30 @@ import {
   whereIn,
 } from 'ts-igdb-client';
 
+const defaultIGDBIds = [process.env.DEFAULT_IGDB_ID];
+
 @Injectable()
 export class IgdbService {
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+
   private twitchSecrets = {
     client_id: process.env.TWITCH_CLIENT_ID,
     client_secret: process.env.TWITCH_CLIENT_SECRET,
   };
 
-  private IGDB_GAME_IDS = [process.env.DEFAULT_IGDB_ID];
+  async getData(igdbIds: string[] = defaultIGDBIds) {
+    if (!this.cacheManager.get('IGDB_DATA')) {
+      const accessToken = await twitchAccessToken(this.twitchSecrets);
+      const client = igdb(this.twitchSecrets.client_id, accessToken);
 
-  async getData() {
-    const accessToken = await twitchAccessToken(this.twitchSecrets);
-    // generate an IGDB client with twitch credentials
-    const client = igdb(this.twitchSecrets.client_id, accessToken);
+      const { data } = await client
+        .request('games')
+        .pipe(fields('*'), whereIn('id', igdbIds, WhereInFlags.AND))
+        .execute();
 
-    // build and execute a query
-    const { data } = await client
-      .request('games')
-      //.pipe(fields('*'), where('id', '=', process.env.DEFAULT_IGDB_ID))
-      .pipe(fields('*'), whereIn('id', this.IGDB_GAME_IDS, WhereInFlags.AND))
-      .execute();
-
-    return data;
+      await this.cacheManager.set('IGDB_DATA', data, 86400); // 1 Day
+      return data;
+    }
+    return this.cacheManager.get('IGBD_DATA');
   }
 }
