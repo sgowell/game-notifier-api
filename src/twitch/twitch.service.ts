@@ -58,7 +58,9 @@ export class TwitchService {
     });
   }
 
-  async buildLocalizedBody(languageCode: string = 'en'): Promise<string> {
+  private async buildLocalizedBody(
+    languageCode: string = 'en',
+  ): Promise<string> {
     let localizedBody = '';
     if (languageCode !== 'en') {
       const language = `language: ${languageCode}\n`;
@@ -71,7 +73,7 @@ export class TwitchService {
     return localizedBody;
   }
 
-  buildFollowerModeBody(
+  private buildFollowerModeBody(
     enabled: boolean = false,
     followDelay: number = null,
   ): string {
@@ -85,7 +87,7 @@ export class TwitchService {
     return followerModeBody;
   }
 
-  sendMessage(body) {
+  private sendMessage(body) {
     client.messages
       .create({
         body: body,
@@ -95,7 +97,7 @@ export class TwitchService {
       .then((message) => console.log(message.sid));
   }
 
-  async buildTranslatedMessage(languageCode = 'en') {
+  private async buildTranslatedMessage(languageCode = 'en') {
     return await translate(
       'Hello. Hope you are having a good stream. I have subscriber perks to this game. Is it ok for me to use them?',
       {
